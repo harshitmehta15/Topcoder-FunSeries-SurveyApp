@@ -9,12 +9,19 @@
 import UIKit
 
 
-class ViewController: UIViewController,UITableViewDataSource,UITableViewDelegate {
+class ViewController: UIViewController,UITableViewDataSource,UITableViewDelegate,UISearchBarDelegate,UISearchDisplayDelegate {
     
     
     var dataArray:NSMutableArray!
     var plistPath:String!
-    var tableData=[String]()
+    var tableData: NSArray!
+    var filteredData: [String] = []
+    var titleData :[String] = []
+    var i: Int = 0
+    var flag: Bool = false;
+
+    @IBOutlet var SurveyTableSearchBar: UISearchBar!
+    
     
     @IBOutlet var Label: UILabel!
     @IBOutlet var SurveyTable: UITableView!
@@ -23,18 +30,67 @@ class ViewController: UIViewController,UITableViewDataSource,UITableViewDelegate
         SurveyTable.delegate=self;
         SurveyTable.dataSource=self;
         
-        // Do any additional setup after loading the view, typically from a nib.
-        if let path = NSBundle.mainBundle().pathForResource("data", ofType: "plist"){
+        
+        //Do any additional setup after loading the view, typically from a nib.
+        /*if let path = NSBundle.mainBundle().pathForResource("data", ofType: "plist"){
             if let arrayOfDictionaries = NSArray(contentsOfFile: path){
                 for dict in arrayOfDictionaries {
                     tableData.append(dict.objectForKey("title") as! String)
                 }
             }
         }
-        print(tableData);
+        print(tableData);*/
+        
+        let JSONData:NSData = getJSON("http://www.mocky.io/v2/560920cc9665b96e1e69bb46")
+        
+        tableData = parseJSON(JSONData)
+        print(tableData) // show me data
         SurveyTable.reloadData()
         
+        for(i=0; i < tableData.count ; i++)
+        {
+            var temp: String;
+            temp = (tableData[i]["title"] as? String)!;
+            titleData.insert(temp, atIndex: i);
+            
+        }
+        print(titleData);
+        //filteredData = titleData
+        
+
     }
+    
+    //Search Bar functions
+    func searchBar(searchBar: UISearchBar, textDidChange searchText: String){
+        print("india");
+        flag = true;
+        self.filteredData = self.titleData.filter({ (title : String) -> Bool in
+            let stringForSearch = title.rangeOfString(searchText)
+            return (stringForSearch != nil)
+        })
+       SurveyTable.reloadData()
+    }
+    
+    
+    
+    
+ 
+    
+   //JSON Parsing and API hit functions
+    
+    func getJSON(urlToRequest: String) -> NSData{
+        return NSData(contentsOfURL: NSURL(string: urlToRequest)!)!
+    }
+    
+    
+    func parseJSON(inputData: NSData) -> NSArray{
+        var error: NSError?
+        let data: NSArray = (try! NSJSONSerialization.JSONObjectWithData(inputData, options: NSJSONReadingOptions.MutableContainers)) as! NSArray
+        
+        return data
+    }
+    
+    
     
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
@@ -48,15 +104,43 @@ class ViewController: UIViewController,UITableViewDataSource,UITableViewDelegate
     
     
     func tableView(SurveyTable: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return tableData.count
+        if (flag == false)
+        {
+        return titleData.count;
+        }
+            else
+        {
+        return filteredData.count;
+        }
+        
     }
     
-    func tableView(SurveyTable: UITableView,
+   func tableView(SurveyTable: UITableView,
         cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell{
             
-            var cell:UITableViewCell = SurveyTable.dequeueReusableCellWithIdentifier("cell")as! UITableViewCell
-            cell.textLabel!.text = tableData[indexPath.row] as? String
-            return cell
+            /*
+            var selected : String!
+            // Check to see whether the normal table or search results table is being displayed and set the Candy object from the appropriate array
+            if (SurveyTable == self.searchDisplayController!.searchResultsTableView) {
+                
+                selected = filteredData[indexPath.row]
+            } else {
+                selected = titleData[indexPath.row]
+            }
+           */
+            
+            let cell1 = SurveyTable.dequeueReusableCellWithIdentifier("cell", forIndexPath: indexPath)
+            
+            var countryName : String!
+            if (flag == true) {
+                countryName = filteredData[indexPath.row]
+            } else {
+                countryName = titleData[indexPath.row]
+            }
+            
+            cell1.textLabel?.text = countryName
+            
+            return cell1 
     }
     
     
